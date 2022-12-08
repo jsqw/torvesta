@@ -1,0 +1,21 @@
+const app = require('./app')
+const http = require('http')
+const logger = require('./utils/logger')
+const { PORT } = require('./utils/config')
+const { Server } = require('socket.io')
+const server = http.createServer(app)
+
+server.listen(PORT, () => {
+  logger.info(`SERVER LISTENING ON PORT ${PORT}`)
+})
+
+global.io = new Server(server, { cors: {
+  origin: 'http://localhost:3000',
+  methods: ['GET', 'POST']
+} })
+
+global.io.on('connection', (socket) => {
+  socket.on('newData', (data) => {
+    socket.emit(data)
+  })
+})
