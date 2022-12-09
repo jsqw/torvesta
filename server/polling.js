@@ -2,7 +2,7 @@ const convert = require('xml-js')
 const axios = require('axios')
 const logger = require('./utils/logger')
 const { DRONEURL, PILOTURL } = require('./utils/config')
-const { getDistanceInMeters, RemoveJsonTextAttribute } = require('./utils/helper')
+const { getDistanceInMeters, removeJsonTextAttribute } = require('./utils/helper')
 
 const CHECKINTERVAL_MILLISECONDS = 10000
 const REMOVEINACTIVEDRONES_SECONDS = 120
@@ -13,7 +13,7 @@ let unknownSerials = []
 const getDrones = async () => {
   logger.info('Getting dronedata...')
   const res = await axios.get(DRONEURL)
-  const json = convert.xml2js(res.data, { compact: true, textFn:RemoveJsonTextAttribute })
+  const json = convert.xml2js(res.data, { compact: true, textFn:removeJsonTextAttribute })
 
   const timestamp = Date.now() / 1000
 
@@ -52,7 +52,7 @@ const getDrones = async () => {
     recentViolators[found].contactDetails = { ...contactDetails }
   }
 
-  recentViolators = recentViolators.filter((t => !((timestamp - t.lastSeen) > REMOVEINACTIVEDRONES_SECONDS)))
+  recentViolators = recentViolators.filter((t => (timestamp - t.lastSeen) < REMOVEINACTIVEDRONES_SECONDS))
 
   logger.info('VIOLATORS: ', recentViolators.length)
 

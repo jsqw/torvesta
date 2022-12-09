@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import io from 'socket.io-client'
-import ViolatorTable from './components/Violatortable'
+import Container from 'react-bootstrap/Container'
+import ViolatorTable from './components/ViolatorTable'
+import ErrorBoundary from './components/ErrorBoundary'
+import NavBar from './components/Navbar'
 
 const socket = io('http://localhost:3001')
 
@@ -28,10 +31,12 @@ const App = () => {
   }, [])
 
   return (
-    <div className="App">
-      <h3>Status: {!isConnected ? 'Connecting...' : 'Connected'}</h3>
-      <ViolatorTable droneData={data} />
-    </div>
+    <Container className="App text-center">
+      <NavBar isConnected={isConnected}/>
+      <ErrorBoundary>
+        {data.length > 0 ? <ViolatorTable droneData={data} /> : <p>Waiting for data...</p> }
+      </ErrorBoundary>
+    </Container>
   )
 }
 

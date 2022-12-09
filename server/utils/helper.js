@@ -1,6 +1,6 @@
 const logger = require('./logger')
 
-function RemoveJsonTextAttribute(value,parentElement){
+function removeJsonTextAttribute(value,parentElement){
   try{
     var keyNo = Object.keys(parentElement._parent).length
     var keyName = Object.keys(parentElement._parent)[keyNo-1]
@@ -18,4 +18,4 @@ function getDistanceInMeters(postitionX, positionY) {
   return Math.floor((Math.sqrt(((250000 - x) ** 2 ) + ((250000 - y ) ** 2)))/1000)
 }
 
-module.exports = { RemoveJsonTextAttribute, getDistanceInMeters }
+module.exports = { removeJsonTextAttribute, getDistanceInMeters }
