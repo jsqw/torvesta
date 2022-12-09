@@ -11,7 +11,8 @@ let recentViolators = []
 let unknownSerials = []
 
 const getDrones = async () => {
-  logger.info('Getting dronedata...')
+  logger.info('---------------------')
+  logger.info('GETTING DRONES')
   const res = await axios.get(DRONEURL)
   const json = convert.xml2js(res.data, { compact: true, textFn:removeJsonTextAttribute })
 
@@ -21,50 +22,55 @@ const getDrones = async () => {
   json.report.capture.drone
     .map((d) => ({
       serial: d.serialNumber,
-      dist: getDistanceInMeters(d.positionX, d.positionY),
+      distance: getDistanceInMeters(d.positionX, d.positionY),
       seen: timestamp }))
-    .filter(d => d.dist < 100)
+    .filter(d => d.distance < 100)
 
-  recentViolators = currentViolators.map(s => s)
-    .reduce((recentViolators, seen) => {
-      const found = recentViolators.findIndex(( s ) => s.serial === seen.serial)
+  recentViolators = currentViolators.map(drones => drones)
+    .reduce((recentViolators, drone) => {
+      const found = recentViolators.findIndex(( drones ) => drones.serial === drone.serial)
       if (found === -1) {
         logger.info('NEW DRONE DETECTED')
-        unknownSerials.push(seen.serial)
+        unknownSerials.push(drone.serial)
         return [...recentViolators, {
-          serial: seen.serial,
-          closestDistance: seen.dist,
+          serial: drone.serial,
+          closestDistance: drone.distance,
           lastSeen: timestamp
         }]
-      } else {
-        logger.info('ALREADY DETECTED DRONE RETURNED')
-        let viol = [...recentViolators]
-        viol[found].closestDistance = Math.min(seen.dist, viol[found].closestDistance)
-        viol[found].lastSeen = timestamp
-        return viol
       }
+      logger.info('KNOWN DRONE RETURNED')
+      let viol = [...recentViolators]
+      viol[found].closestDistance = Math.min(drone.distance, viol[found].closestDistance)
+      viol[found].lastSeen = timestamp
+      return viol
     }, recentViolators)
 
   while (unknownSerials.length > 0) {
-    const serial = unknownSerials.pop()
-    const contactDetails = await getContactInfo(serial)
-    const found = recentViolators.findIndex(( s ) => s.serial === serial)
-    recentViolators[found].contactDetails = { ...contactDetails }
+    const unknownSerial = unknownSerials.pop()
+    const contactDetails = await getContactInfo(unknownSerial)
+    const droneWithoutContactDetails = recentViolators.findIndex(( drone ) => drone.serial === unknownSerial)
+    recentViolators[droneWithoutContactDetails].contactDetails = { ...contactDetails }
   }
 
   recentViolators = recentViolators.filter((t => (timestamp - t.lastSeen) < REMOVEINACTIVEDRONES_SECONDS))
 
-  logger.info('VIOLATORS: ', recentViolators.length)
+  logger.info('ACTIVE VIOLATORS: ', recentViolators.length)
+  logger.info('---------------------\n')
 
   global.io.emit('newData', recentViolators)
 }
 
 const getContactInfo = async (serial) => {
-  const res = await axios.get(PILOTURL + serial)
-  return {
-    name: `${res.data.firstName} ${res.data.lastName}`,
-    email: res.data.email,
-    phone: res.data.phoneNumber }
+  try {
+    logger.info('GETTING PILOT INFO')
+    const res = await axios.get(PILOTURL + serial)
+    return {
+      name: `${res.data.firstName} ${res.data.lastName}`,
+      email: res.data.email,
+      phone: res.data.phoneNumber }
+  } catch {
+    logger.error('error requesting pilot info')
+  }
 }
 
 module.exports = setInterval(getDrones, CHECKINTERVAL_MILLISECONDS)

@@ -6,7 +6,7 @@ const { Server } = require('socket.io')
 const server = http.createServer(app)
 
 server.listen(PORT, () => {
-  logger.info(`SERVER LISTENING ON PORT ${PORT}`)
+  logger.info(`[b1rdzn3st] port: ${PORT}`)
 })
 
 global.io = new Server(server, { cors: {
