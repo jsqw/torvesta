@@ -4,28 +4,53 @@ const logger = require('./utils/logger')
 const { DRONEURL, PILOTURL } = require('./utils/config')
 const { getDistanceInMeters, removeJsonTextAttribute } = require('./utils/helper')
 
-const CHECKINTERVAL_MILLISECONDS = 10000
-const REMOVEINACTIVEDRONES_SECONDS = 120
+const CHECKINTERVAL_MILLISECONDS = 3000
+const REMOVEINACTIVEDRONES_SECONDS = 600
 
 let recentViolators = []
 let unknownSerials = []
+let lastSeenViolators = []
 
 const getDrones = async () => {
   logger.info('---------------------')
   logger.info('GETTING DRONES')
-  const res = await axios.get(DRONEURL)
-  const json = convert.xml2js(res.data, { compact: true, textFn:removeJsonTextAttribute })
 
+  const res = await axios.get(DRONEURL)
+  const currentDrones = convert.xml2js(res.data, { compact: true, textFn:removeJsonTextAttribute })
   const timestamp = Date.now() / 1000
 
   const currentViolators =
-  json.report.capture.drone
+  currentDrones.report.capture.drone
     .map((d) => ({
       serial: d.serialNumber,
       distance: getDistanceInMeters(d.positionX, d.positionY),
       seen: timestamp }))
     .filter(d => d.distance < 100)
 
+
+  if (JSON.stringify(currentViolators) === JSON.stringify(lastSeenViolators)) {
+    logger.info('NO CHANGES DETECTED')
+    logger.info('---------------------\n')
+  } else {
+    lastSeenViolators = currentViolators
+    processAndEmitDroneData(currentViolators, timestamp)
+  }
+}
+
+const getContactInfo = async (serial) => {
+  try {
+    logger.info('GETTING PILOT INFO')
+    const res = await axios.get(PILOTURL + serial)
+    return {
+      name: `${res.data.firstName} ${res.data.lastName}`,
+      email: res.data.email,
+      phone: res.data.phoneNumber }
+  } catch {
+    logger.error('error requesting pilot info')
+  }
+}
+
+const processAndEmitDroneData = async ( currentViolators, timestamp ) => {
   recentViolators = currentViolators.map(drones => drones)
     .reduce((recentViolators, drone) => {
       const found = recentViolators.findIndex(( drones ) => drones.serial === drone.serial)
@@ -58,19 +83,6 @@ const getDrones = async () => {
   logger.info('---------------------\n')
 
   global.io.emit('newData', recentViolators)
-}
-
-const getContactInfo = async (serial) => {
-  try {
-    logger.info('GETTING PILOT INFO')
-    const res = await axios.get(PILOTURL + serial)
-    return {
-      name: `${res.data.firstName} ${res.data.lastName}`,
-      email: res.data.email,
-      phone: res.data.phoneNumber }
-  } catch {
-    logger.error('error requesting pilot info')
-  }
 }
 
 module.exports = setInterval(getDrones, CHECKINTERVAL_MILLISECONDS)
