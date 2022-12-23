@@ -9,10 +9,7 @@ server.listen(PORT, () => {
   logger.info(`[b1rdzn3st] port: ${PORT}`)
 })
 
-global.io = new Server(server, { cors: {
-  origin: 'http://localhost:3000',
-  methods: ['GET', 'POST']
-} })
+global.io = new Server(server)
 
 global.io.on('connection', (socket) => {
   socket.on('newData', (data) => {

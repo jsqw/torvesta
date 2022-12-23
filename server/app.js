@@ -1,12 +1,11 @@
 const express = require('express')
-const app = express()
 const cors = require('cors')
 
-require('express-async-errors')
-require('./polling')
+const app = express()
 
 app.use(cors())
 app.use(express.static('build'))
-app.use(express.json())
+
+require('./polling')
 
 module.exports = app

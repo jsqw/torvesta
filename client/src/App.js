@@ -5,7 +5,7 @@ import ViolatorTable from './components/ViolatorTable'
 import ErrorBoundary from './components/ErrorBoundary'
 import NavBar from './components/Navbar'
 
-const socket = io('http://localhost:3001')
+const socket = io()
 
 const App = () => {
   const [isConnected, setIsConnected] = useState(socket.connected)
